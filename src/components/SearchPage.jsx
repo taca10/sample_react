@@ -2,14 +2,13 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import _ from 'lodash';
 import queryString from 'query-string';
+import { connect } from 'react-redux';
+
 
 import SearchForm from '../containers/SearchForm';
-// import GeocodeResult from './GeocodeResult';
-// import Map from './Map';
+import GeocodeResult from './GeocodeResult';
+import Map from './Map';
 // import HotelsTable from './HotelsTable';
-
-import { geocode } from '../domain/Geocoder';
-import { searchHotelByLocation } from '../domain/HotelRepository';
 
 const sortedHotels = (hotels, sortKey) => _.sortBy(hotels, h => h[sortKey]);
 
@@ -17,11 +16,6 @@ class SearchPage extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      place: this.getPlaceParam() || '東京タワー',
-      location: {
-        lat: 35.6585805,
-        lng: 139.7454329,
-      },
       sortKey: 'price',
     };
   }
@@ -52,40 +46,11 @@ class SearchPage extends Component {
     });
   }
 
-  handlePlaceSubmit(e) {
-    e.preventDefault();
-    this.props.history.push(`/?place=${this.state.place}`);
-    this.startSearch();
-  }
-
-  startSearch() {
-    console.log(this.state.place);
-    geocode(this.state.place)
-      .then(({ status, address, location }) => {
-        switch (status) {
-          case 'OK': {
-            this.setState({ address, location });
-            console.log(location);
-            return searchHotelByLocation(location);
-          }
-          case 'ZERO_RESULTS': {
-            this.setErrorMessage('結果が見つかりませんでした。');
-            break;
-          }
-          default: {
-            this.setErrorMessage('エラーが発生しました');
-          }
-        }
-        // console.log('aaaaa');
-        return [];
-      })
-      .then((hotels) => {
-        this.setState({ hotels: sortedHotels(hotels, this.state.sortKey) });
-      })
-      .catch(() => {
-        this.setErrorMessage('通信に失敗しました。');
-      });
-  }
+  // handlePlaceSubmit(e) {
+  //   e.preventDefault();
+  //   this.props.history.push(`/?place=${this.state.place}`);
+  //   this.startSearch();
+  // }
 
   handleSortKeyChange(sortKey) {
     console.log(sortKey);
@@ -101,32 +66,42 @@ class SearchPage extends Component {
     return (
       <div className="search-page">
         <h1 className="app-title">ホテル検索</h1>
-        <SearchForm
-          onSubmit={e => this.handlePlaceSubmit(e)}
-        />
-        {/* <div className="result-area">
-          <Map location={this.state.location} />
+        <SearchForm />
+        <div className="result-area">
+          <Map location={this.props.geocodeResult.location} />
           <div className="result-right">
             <GeocodeResult
-              address={this.state.address}
-              location={this.state.location}
+              address={this.props.geocodeResult.address}
+              location={this.props.geocodeResult.location}
             />
-            <h2>ホテル検索結果</h2>
+            {/* <h2>ホテル検索結果</h2>
             <HotelsTable
               hotels={this.state.hotels}
               sortkey={this.state.sortKey}
               onSort={sortKey => this.handleSortKeyChange(sortKey)}
-            />
+            /> */}
           </div>
-        </div> */}
+        </div>
       </div>
     );
   }
 }
 
 SearchPage.propTypes = {
-  history: PropTypes.shape({ push: PropTypes.func }).isRequired,
+  // history: PropTypes.shape({ push: PropTypes.func }).isRequired,
   location: PropTypes.shape({ search: PropTypes.string }).isRequired,
+  geocodeResult: PropTypes.shape({
+    address: PropTypes.string.isRequired,
+    location: PropTypes.shape({
+      lat: PropTypes.number.isRequired,
+      lng: PropTypes.number.isRequired,
+    }),
+  }).isRequired,
 };
 
-export default SearchPage;
+
+const mapStateToProps = state => ({
+  geocodeResult: state.geocodeResult,
+});
+
+export default connect(mapStateToProps)(SearchPage);
